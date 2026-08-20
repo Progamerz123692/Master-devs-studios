@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ---------------------------------------------------------
+    // GLOBAL HELPERS
+    // ---------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // ---------------------------------------------------------
+    // VALIDATION BLUEPRINTS
+    // ---------------------------------------------------------
+    function isValidUser(data) {
+      return data.fullName is string && data.fullName.size() <= 100 &&
+             data.email is string && data.email.size() <= 100 &&
+             (data.get('avatarUrl', '') is string) &&
+             (data.get('status', 'Active') in ['Active', 'Inactive']) &&
+             (data.get('theme', 'light') in ['light', 'dark']) &&
+             (data.get('compactMode', false) is bool) &&
+             (data.get('sidebarCollapsed', false) is bool) &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp;
+    }
+
+    function isValidNotification(data) {
+      return data.title is string && data.title.size() <= 100 &&
+             data.message is string && data.message.size() <= 500 &&
+             data.type in ['success', 'info', 'warning', 'error'] &&
+             data.read is bool &&
+             data.createdAt is timestamp;
+    }
+
+    // ---------------------------------------------------------
+    // CATCH-ALL DENY
+    // ---------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ---------------------------------------------------------
+    // USERS COLLECTION
+    // ---------------------------------------------------------
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && 
+                      isValidUser(incoming()) && 
+                      incoming().createdAt == request.time &&
+                      incoming().updatedAt == request.time;
+      allow update: if isOwner(userId) && 
+                      isValidUser(incoming()) && 
+                      incoming().createdAt == existing().createdAt &&
+                      incoming().updatedAt == request.time && (
+                        incoming().diff(existing()).affectedKeys().hasAny([
+                          'fullName', 'email', 'avatarUrl', 'status', 
+                          'theme', 'compactMode', 'sidebarCollapsed', 'updatedAt'
+                        ])
+                      );
+    }
+
+    // ---------------------------------------------------------
+    // NOTIFICATIONS SUBCOLLECTION
+    // ---------------------------------------------------------
+    match /users/{userId}/notifications/{notificationId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && 
+                      isValidNotification(incoming()) && 
+                      incoming().createdAt == request.time;
+      allow update: if isOwner(userId) && 
+                      isValidNotification(incoming()) && 
+                      incoming().createdAt == existing().createdAt &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+      allow delete: if isOwner(userId);
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "AppUser": {
+      "title": "AppUser",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email" },
+        "avatarUrl": { "type": "string" },
+        "status": { "type": "string", "enum": ["Active", "Inactive"] },
+        "theme": { "type": "string", "enum": ["light", "dark"] },
+        "compactMode": { "type": "boolean" },
+        "sidebarCollapsed": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fullName", "email", "createdAt"]
+    },
+    "AppNotification": {
+      "title": "AppNotification",
+      "description": "User notification",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 100 },
+        "message": { "type": "string", "maxLength": 500 },
+        "type": { "type": "string", "enum": ["success", "info", "warning", "error"] },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "message", "read", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "AppUser",
+      "description": "Stores user profiles"
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+      "schema": "AppNotification",
+      "description": "Stores user notifications"
+    }
+  }
+}

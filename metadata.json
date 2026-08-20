@@ -1,0 +1,8 @@
+{
+  "name": "Employee Dashboard",
+  "description": "A professional interactive dashboard for managing and viewing employee data with real-time search and detailed insights.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
